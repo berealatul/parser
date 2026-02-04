@@ -8,6 +8,8 @@ It scrapes the webpage for PDF links and downloads them to a specified directory
 import os
 import re
 import requests
+import hashlib
+import ipaddress
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import List, Tuple
@@ -34,6 +36,44 @@ class PDFDownloader:
         self.timeout = timeout
         self._ensure_download_directory()
     
+    def _is_safe_url(self, url: str) -> bool:
+        """
+        Check if a URL is safe to request (not pointing to internal networks).
+        
+        Args:
+            url (str): URL to check
+            
+        Returns:
+            bool: True if URL is safe, False otherwise
+        """
+        try:
+            parsed = urlparse(url)
+            hostname = parsed.hostname
+            
+            if not hostname:
+                return False
+            
+            # Check for localhost
+            if hostname.lower() in ['localhost', '127.0.0.1', '::1']:
+                return False
+            
+            # Try to resolve hostname to IP and check if it's private
+            try:
+                import socket
+                ip = socket.gethostbyname(hostname)
+                ip_obj = ipaddress.ip_address(ip)
+                
+                # Block private IP ranges
+                if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local:
+                    return False
+            except (socket.gaierror, ValueError):
+                # If we can't resolve, allow it (might be a valid public hostname)
+                pass
+            
+            return True
+        except Exception:
+            return False
+    
     def _ensure_download_directory(self) -> None:
         """Create download directory if it doesn't exist."""
         if not os.path.exists(self.download_dir):
@@ -52,6 +92,11 @@ class PDFDownloader:
         Raises:
             requests.RequestException: If the webpage cannot be accessed
         """
+        # Check URL safety (can be disabled by setting DISABLE_SSRF_PROTECTION env var)
+        if not os.environ.get('DISABLE_SSRF_PROTECTION'):
+            if not self._is_safe_url(url):
+                raise Exception(f"URL points to internal/private network: {url}")
+        
         try:
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
@@ -84,6 +129,11 @@ class PDFDownloader:
         Returns:
             Tuple[bool, str]: (Success status, filepath or error message)
         """
+        # Check URL safety (can be disabled by setting DISABLE_SSRF_PROTECTION env var)
+        if not os.environ.get('DISABLE_SSRF_PROTECTION'):
+            if not self._is_safe_url(pdf_url):
+                return False, f"URL points to internal/private network: {pdf_url}"
+        
         try:
             # Determine filename
             if not filename:
@@ -91,9 +141,10 @@ class PDFDownloader:
                 parsed_url = urlparse(pdf_url)
                 filename = os.path.basename(parsed_url.path)
                 
-                # If no filename in URL, generate one
+                # If no filename in URL, generate one using stable hash
                 if not filename or not filename.endswith('.pdf'):
-                    filename = f"document_{hash(pdf_url)}.pdf"
+                    url_hash = hashlib.md5(pdf_url.encode()).hexdigest()[:8]
+                    filename = f"document_{url_hash}.pdf"
             
             # Ensure .pdf extension
             if not filename.endswith('.pdf'):

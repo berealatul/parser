@@ -34,9 +34,14 @@ venv/
 *.swo
 *~
 
-# Downloaded PDFs
+# Downloaded PDFs and output
 downloads/
+output/
 *.pdf
+
+# Test files
+test_pdfs/
+test_results.json
 
 # Logs
 *.log

@@ -9,6 +9,7 @@ This web application allows users to:
 """
 
 from flask import Flask, render_template, request, jsonify, send_file
+from werkzeug.utils import secure_filename
 import os
 import json
 from datetime import datetime
@@ -110,6 +111,8 @@ def download_file(filename):
         filename: Name of the file to download
     """
     try:
+        # Secure the filename to prevent path traversal attacks
+        filename = secure_filename(filename)
         filepath = os.path.join(OUTPUT_DIR, filename)
         
         if not os.path.exists(filepath):
@@ -143,4 +146,13 @@ def health():
 
 if __name__ == '__main__':
     # Run the application
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Note: In production, use a production WSGI server like gunicorn
+    # and configure HOST, PORT, and DEBUG via environment variables
+    debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+    host = os.environ.get('HOST', '0.0.0.0')
+    port = int(os.environ.get('PORT', 5000))
+    
+    if debug:
+        print("WARNING: Running in debug mode. Do not use in production!")
+    
+    app.run(debug=debug, host=host, port=port)

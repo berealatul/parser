@@ -5,6 +5,7 @@ This module contains configuration settings for the PDF Downloader and Parser ap
 """
 
 import os
+import sys
 
 
 class Config:
@@ -34,7 +35,14 @@ class Config:
     ]
     
     # Flask settings
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        if os.environ.get('FLASK_ENV') == 'production':
+            print("ERROR: SECRET_KEY must be set in production!", file=sys.stderr)
+            sys.exit(1)
+        else:
+            SECRET_KEY = 'dev-secret-key-change-in-production'
+    
     MAX_CONTENT_LENGTH = MAX_FILE_SIZE
 
 

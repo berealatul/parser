@@ -101,8 +101,7 @@ def run_tests():
 if __name__ == "__main__":
     # Check if reportlab is installed
     try:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
+        import reportlab
         run_tests()
     except ImportError:
         print("Error: reportlab library is required for creating test PDFs.")

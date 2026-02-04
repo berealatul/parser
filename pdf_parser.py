@@ -230,7 +230,7 @@ class PDFParser:
         
         return results
     
-    def save_to_json(self, data: Dict or List, output_path: str) -> None:
+    def save_to_json(self, data: 'Dict | List', output_path: str) -> None:
         """
         Save parsed data to a JSON file.
         

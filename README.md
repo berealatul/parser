@@ -24,6 +24,28 @@ parser/
 └── output/                # Directory for JSON output files (auto-created)
 ```
 
+## Security Considerations
+
+⚠️ **Important Security Notes:**
+
+1. **SSRF Risk**: This application makes HTTP requests to user-provided URLs. In a production environment, consider:
+   - Implementing URL allowlists
+   - Blocking requests to internal/private IP addresses
+   - Adding rate limiting
+   - Using a separate network zone for the application
+
+2. **File Downloads**: The application downloads and processes PDFs from external sources. Consider:
+   - Implementing file size limits (configured in `config.py`)
+   - Scanning downloaded files for malware
+   - Running the application in a sandboxed environment
+
+3. **Production Deployment**:
+   - Set `SECRET_KEY` environment variable to a strong random value
+   - Use a production WSGI server (e.g., gunicorn, uWSGI)
+   - Enable HTTPS/TLS
+   - Set `FLASK_ENV=production`
+   - Configure proper firewall rules
+
 ## Installation
 
 1. **Clone the repository**:
