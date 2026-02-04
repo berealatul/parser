@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Downloader & Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results-section {
+            display: none;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .result-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .result-card .subject-code {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .result-card .subject-name {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .answer-key {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .answer-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .answer-item:last-child {
+            border-bottom: none;
+        }
+        
+        .question-id {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .answer {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .download-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        .download-btn:hover {
+            background: #218838;
+        }
+        
+        .stats {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 PDF Downloader & Parser</h1>
+        <p class="subtitle">Download and parse answer key PDFs from any URL</p>
+        
+        <div class="input-section">
+            <form id="urlForm">
+                <div class="form-group">
+                    <label for="url">Enter URL containing PDF links:</label>
+                    <input 
+                        type="url" 
+                        id="url" 
+                        name="url" 
+                        placeholder="https://example.com/answer-keys" 
+                        required
+                    >
+                </div>
+                <button type="submit" class="btn" id="submitBtn">
+                    Download & Parse PDFs
+                </button>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #667eea; font-weight: 600;">
+                Processing... Please wait
+            </p>
+        </div>
+        
+        <div class="results-section" id="results">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('urlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = document.getElementById('url').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const resultsSection = document.getElementById('results');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            resultsSection.style.display = 'none';
+            
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+                
+                // Display results
+                displayResults(data);
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+                
+                resultsSection.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                resultsSection.style.display = 'block';
+            }
+        });
+        
+        function displayResults(data) {
+            const resultsSection = document.getElementById('results');
+            
+            if (!data.success) {
+                resultsSection.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> ${data.error}
+                    </div>
+                `;
+                resultsSection.style.display = 'block';
+                return;
+            }
+            
+            const results = data.results;
+            const successCount = results.filter(r => r.success).length;
+            const totalQuestions = results.reduce((sum, r) => 
+                sum + (r.total_questions || 0), 0
+            );
+            
+            let html = `
+                <div class="success-message">
+                    <strong>Success!</strong> ${data.message}
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value">${successCount}</div>
+                        <div class="stat-label">PDFs Parsed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${totalQuestions}</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                </div>
+                
+                <a href="/download/${data.output_file}" class="download-btn" download>
+                    💾 Download JSON Results
+                </a>
+                
+                <div class="results-grid">
+            `;
+            
+            results.forEach(result => {
+                if (result.success) {
+                    html += `
+                        <div class="result-card">
+                            <h3>
+                                <span class="subject-code">${result.subject_code}</span>
+                            </h3>
+                            <div class="subject-name">${result.subject_name || 'No subject name'}</div>
+                            <div><strong>Questions:</strong> ${result.total_questions}</div>
+                            <div class="answer-key">
+                    `;
+                    
+                    result.answer_key.forEach(item => {
+                        html += `
+                            <div class="answer-item">
+                                <span class="question-id">Q${item.question_id}</span>
+                                <span class="answer">${item.answer}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="result-card" style="border-color: #dc3545;">
+                            <h3 style="color: #dc3545;">Error</h3>
+                            <div>${result.error}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            
+            resultsSection.innerHTML = html;
+            resultsSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
